@@ -1,29 +1,16 @@
 #ifndef ROOT_TClientServer
 #define ROOT_TClientServer
 
-#include "TSocket.h"
 #include "TMessage.h"
 #include "TString.h"
-#include "TSysEvtHandler.h" // TFileHandler
+#include "TMonitor.h"
+#include "TJob.h"
 
-class TClientServer;
-
-class TClientServerHandler : public TFileHandler {
-	ClassDef(TClientServerHandler, 1);
-	public:
-	TClientServerHandler(TClientServer *s, Int_t fd);
-   Bool_t Notify();
-   Bool_t ReadNotify();
-	private:
-	TClientServer *fClientServer;
-};
-
-
-struct TAnswer : public TObject {
-	ClassDef(TAnswer, 1);
-	TAnswer();
-	unsigned retval;
-	TString msg;
+struct TNote : public TObject {
+	ClassDef(TNote, 1);
+	TNote();
+	unsigned code;
+	TString str;
 	TObject *obj;
 };
 
@@ -32,16 +19,34 @@ class TClientServer {
 	ClassDef(TClientServer, 1);
 	public:
 	TClientServer();
-	void Fork();
-	void Send(TString) const;
-	void Send(TMessage&) const;
-	void HandleInput();
+	TClientServer(TJob *);
+	TClientServer(TString macroPath); //FIXME when is the macro loaded???
+	~TClientServer();
+	void Fork(unsigned n_forks);
+	void Broadcast(unsigned code, TString msg = "") const;
+	void CollectOne(TSocket* = nullptr);
+	void CollectAll();
+	void SetJob(TJob*);
+	TString GetMacroPath() const { return fMacroPath; }
+	void SetMacroPath(const TString&);
+	//void Reset() TODO kill all servers, delete list of results, clean fMonitor, reset fServerN, remove fJob
+	
+	TList ResList;
 
 	private:
+	void Run();
+	void Send(unsigned code, const TString& msg = "", TSocket * = nullptr) const;
+	void Send(const TMessage&, TSocket * = nullptr) const;
+	void ClientHandleInput(TMessage*&, TSocket*);
+	void ServerHandleInput(TMessage*&);
+	
 	bool fIsParent;
-	TSocket *fS;
-	unsigned fSocketN;
-	TFileHandler *fHandler;
+	unsigned fPortN;
+	unsigned fServerN;
+	TMonitor fMon;
+	TJob *fJob;
+	TString fMacroPath;
+
 };
 
 #endif
