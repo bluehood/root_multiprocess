@@ -20,15 +20,15 @@ class TClientServer {
 	public:
 	TClientServer();
 	TClientServer(TJob *);
-	TClientServer(TString macroPath); //FIXME when is the macro loaded???
+	TClientServer(const TString& macroPath);
 	~TClientServer();
 	void Fork(unsigned n_forks);
 	void Broadcast(unsigned code, TString msg = "") const;
 	void CollectOne(TSocket* = nullptr);
 	void CollectAll();
 	void SetJob(TJob*);
-	TString GetMacroPath() const { return fMacroPath; }
 	void SetMacroPath(const TString&);
+	inline TString GetMacroPath() const { return fMacroPath; }
 	//void Reset() TODO kill all servers, delete list of results, clean fMonitor, reset fServerN, remove fJob
 	
 	TList ResList;
