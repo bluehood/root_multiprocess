@@ -5,6 +5,26 @@
 #include "TString.h"
 #include "TMonitor.h"
 #include "TJob.h"
+#include <string>
+
+//I need an enum class so I can use simple names enclosed in a scope
+//instead of inventing exotic variable names
+enum class Code : unsigned {
+	//general
+	message,
+	error,
+	//client codes
+	execClass,
+	execMacro,
+	shutdownOrder,
+	//server codes
+	classResult,
+	macroResult,
+	shutdownNotice
+};
+
+std::string to_string(Code);
+
 
 struct TNote : public TObject {
 	ClassDef(TNote, 1);
@@ -23,7 +43,7 @@ class TClientServer {
 	TClientServer(const TString& macroPath);
 	~TClientServer();
 	void Fork(unsigned n_forks);
-	void Broadcast(unsigned code, TString msg = "");
+	void Broadcast(Code code, TString msg = "");
 	void Collect();
 	void SetJob(TJob*);
 	void SetMacroPath(const TString&);
@@ -34,7 +54,7 @@ class TClientServer {
 
 	private:
 	void Run();
-	void Send(unsigned code, const TString& msg = "", TSocket * = nullptr) const;
+	void Send(Code code, const TString& msg = "", TSocket * = nullptr) const;
 	void Send(const TMessage&, TSocket * = nullptr) const;
 	void CollectOne(TSocket* = nullptr);
 	void ClientHandleInput(TMessage*&, TSocket*);

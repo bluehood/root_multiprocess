@@ -7,10 +7,34 @@
 #include <unistd.h> // close
 #include <iostream>
 
+//***** Code ******//
+std::string to_string(Code c) {
+	switch(c) {
+		case Code::message:
+			return "message";
+		case Code::error:
+			return "error";
+		case Code::execClass:
+			return "execClass";
+		case Code::execMacro:
+			return "execMacro";
+		case Code::shutdownOrder:
+			return "shutdownOrder";
+		case Code::classResult:
+			return "classResult";
+		case Code::macroResult:
+			return "macroResult";
+		case Code::shutdownNotice:
+			return "shutdownNotice";
+		default:
+			return "unkown code";
+	}
+}
+
 
 //***** TNote *****//
 TNote::TNote() {
-	code = 0;
+	code = Code::message;
 	str = "";
 	obj = nullptr;
 }
@@ -38,7 +62,7 @@ TClientServer::TClientServer(const TString& macroPath) : TClientServer() {
 
 
 TClientServer::~TClientServer() {
-	Broadcast(3);
+	Broadcast(Code::shutdownOrder);
 	fMon.RemoveAll(); //FIXME memleak? this calls TList::Delete, and this only deletes objects if it has ownership
 }
 
@@ -99,10 +123,10 @@ void TClientServer::Fork(unsigned n_forks) {
 }
 
 
-void TClientServer::Broadcast(unsigned code, TString str) {
+void TClientServer::Broadcast(Code code, TString str) {
 	fMon.ActivateAll();
 	//set parameters for macro execution message
-	if(code == 3) {
+	if(code == Code::execMacro) {
 		if(str != "")
 			std::cerr << "[W][C] code is \"execute macro\" but string is not empty. String will be ignored\n";
 		str = fMacroPath;
@@ -161,7 +185,7 @@ void TClientServer::Run() { //FIXME interrupt events (ctrl-C) interrupt this too
 }
 
 
-void TClientServer::Send(unsigned code, const TString& str, TSocket *s) const {
+void TClientServer::Send(Code code, const TString& str, TSocket *s) const {
 	if(!s)
 		s = (TSocket*)fMon.GetListOfActives()->First();
 	TNote *n = new TNote;
@@ -202,24 +226,24 @@ void TClientServer::CollectOne(TSocket *s) {
 void TClientServer::ClientHandleInput(TMessage *& msg, TSocket* s) {
 	if(msg->What() == kMESS_ANY) {
 		TNote *n = (TNote*)msg->ReadObjectAny(TNote::Class());
-		if(n->code == 0) {
+		if(n->code == Code::message) {
 			std::cerr << "[I][C] message received: '" << n->str << "\n";
 		}
-		else if(n->code == 1) {
+		else if(n->code == Code::error) {
 			std::cerr << "[E][C] error message received: '" << n->str << "\n";
 		}
-		else if(n->code == 2) {
+		else if(n->code == Code::classResult || n->code == Code::macroResult) {
 			std::cerr << "[I][C] job result received from " << n->str << "\n";
 			if(n->obj)
 				ResList.Add(n->obj);
 		}
-		else if(n->code == 3) {
+		else if(n->code == Code::shutdownNotice) {
 			std::cerr << "[I][C] shutdown notice received\n";
 			fMon.Remove(s);
 			fActiveServerN--;
 		}
 		else {
-			std::cerr << "[W][C] unknown type of message received. code=" << n->code << "\n";
+			std::cerr << "[W][C] unknown type of message received. code=" << to_string(n->code) << "\n";
 		}
 	}
 	else {
@@ -232,20 +256,20 @@ void TClientServer::ServerHandleInput(TMessage *& msg) {
 	TString head = "S"+std::to_string(fTotServerN)+": ";
 	if(msg->What() == kMESS_ANY) {
 		TNote *n = (TNote*)msg->ReadObjectAny(TNote::Class());
-		if(n->code == 0) {
+		if(n->code == Code::message) {
 		//general message
 			//ignore it
 		}
-		else if(n->code == 1) {
+		else if(n->code == Code::error) {
 		//general error
 			//ignore it
 		}
-		else if(n->code == 2) {
+		else if(n->code == Code::execClass) {
 		//execute fJob->Process
 			if(fJob) {
 				TObject *res = fJob->Process(); //FIXME memleak?
 				TNote *ans = new TNote;
-				ans->code = 2;
+				ans->code = Code::classResult;
 				ans->str = "S"+std::to_string(fTotServerN);
 				if(res)
 					ans->obj = res;
@@ -254,16 +278,16 @@ void TClientServer::ServerHandleInput(TMessage *& msg) {
 				Send(m);
 			}
 			else {
-				Send(1,"could not execute job: job not set");
+				Send(Code::error,"could not execute job: job not set");
 				std::cerr << head << "could not execute job: job not set\n";
 			}
 		}
-		else if(n->code == 3) {
+		else if(n->code == Code::execMacro) {
 		//execute macro
 		//FIXME memleak: when shoud this stuff be deleted?
 			TObject *o = (TObject*)gROOT->ProcessLine(n->str+"()");
 			TNote *ans = new TNote;
-			ans->code = 2;
+			ans->code = Code::macroResult;
 			ans->str = "S"+std::to_string(fTotServerN);
 			if(o)
 				ans->obj = o;
@@ -271,17 +295,17 @@ void TClientServer::ServerHandleInput(TMessage *& msg) {
 			m.WriteObject(ans);
 			Send(m);
 		}
-		else if(n->code == 4) {
+		else if(n->code == Code::shutdownOrder) {
 		//shutdown order
-			Send(3);
+			Send(Code::shutdownNotice);
 			gSystem->Exit(0);
 		}
 		else {
-			Send(1,head+"unknown code received. code="+std::to_string(n->code));
+			Send(Code::error,head+"unknown code received. code="+to_string(n->code));
 		}
 	}
 	else {
-		Send(1,head+"unexpected message received. type="+std::to_string(msg->What()));
+		Send(Code::error,head+"unexpected message received. type="+std::to_string(msg->What()));
 		std::cerr << head << "unexpected message received. msg type: " << msg->What() << std::endl;
 	}
 }
