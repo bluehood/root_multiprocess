@@ -9,7 +9,7 @@
 struct TNote : public TObject {
 	ClassDef(TNote, 1);
 	TNote();
-	unsigned code;
+	Code code;
 	TString str;
 	TObject *obj;
 };
@@ -23,9 +23,8 @@ class TClientServer {
 	TClientServer(const TString& macroPath);
 	~TClientServer();
 	void Fork(unsigned n_forks);
-	void Broadcast(unsigned code, TString msg = "") const;
-	void CollectOne(TSocket* = nullptr);
-	void CollectAll();
+	void Broadcast(unsigned code, TString msg = "");
+	void Collect();
 	void SetJob(TJob*);
 	void SetMacroPath(const TString&);
 	inline TString GetMacroPath() const { return fMacroPath; }
@@ -37,12 +36,14 @@ class TClientServer {
 	void Run();
 	void Send(unsigned code, const TString& msg = "", TSocket * = nullptr) const;
 	void Send(const TMessage&, TSocket * = nullptr) const;
+	void CollectOne(TSocket* = nullptr);
 	void ClientHandleInput(TMessage*&, TSocket*);
 	void ServerHandleInput(TMessage*&);
 	
 	bool fIsParent;
 	unsigned fPortN;
-	unsigned fServerN;
+	unsigned fActiveServerN;
+	unsigned fTotServerN;
 	TMonitor fMon;
 	TJob *fJob;
 	TString fMacroPath;

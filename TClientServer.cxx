@@ -20,7 +20,8 @@ TNote::TNote() {
 TClientServer::TClientServer() {
 	fIsParent = true;
 	fPortN = 9090;
-	fServerN = 0;
+	fActiveServerN = 0;
+	fTotServerN = 0;
 	fJob = nullptr;
 	fMacroPath = "";
 }
@@ -37,14 +38,16 @@ TClientServer::TClientServer(const TString& macroPath) : TClientServer() {
 
 
 TClientServer::~TClientServer() {
-	fMon.RemoveAll(); //FIXME memleak: this calls TList::Delete, and this only deletes objects if it has ownership
+	Broadcast(3);
+	fMon.RemoveAll(); //FIXME memleak? this calls TList::Delete, and this only deletes objects if it has ownership
 }
 
 
 void TClientServer::Fork(unsigned n_forks) {
 	int pid;
 	for(unsigned i=0; i<n_forks; ++i) {
-		fServerN++;
+		fActiveServerN++;
+		fTotServerN++;
 		pid = fork();
 		if(!pid)
 			break;
@@ -57,6 +60,7 @@ void TClientServer::Fork(unsigned n_forks) {
 		for(unsigned i=0; i<n_forks; ++i) {
 			TSocket* s = ss.Accept();
 			fMon.Add(s);
+			fMon.DeActivate(s);
 		}
 	}
 	else {
@@ -85,7 +89,7 @@ void TClientServer::Fork(unsigned n_forks) {
 				++n_fail;
 		} while(!s && n_fail<3);
 		if(!s) {
-			std::cerr << "[E] S" << fServerN << ": could not connect to parent, giving up\n";
+			std::cerr << "[E] S" << fTotServerN << ": could not connect to parent, giving up\n";
 			gSystem->Exit(1);
 		}
 		fMon.Add(s);
@@ -95,7 +99,8 @@ void TClientServer::Fork(unsigned n_forks) {
 }
 
 
-void TClientServer::Broadcast(unsigned code, TString str) const {
+void TClientServer::Broadcast(unsigned code, TString str) {
+	fMon.ActivateAll();
 	//set parameters for macro execution message
 	if(code == 3) {
 		if(str != "")
@@ -110,31 +115,17 @@ void TClientServer::Broadcast(unsigned code, TString str) const {
 	TSocket *s;
 	while((s = (TSocket*)next()))
 		Send(code, str, s);
+	fMon.DeActivateAll();
 }
 
 
-void TClientServer::CollectOne(TSocket *s) {
-	if(!s)
-		s = fMon.Select();
-	TMessage *msg;
-	int nBytes = s->Recv(msg);
-	if(nBytes == 0 || !msg) {
-		std::cerr << "[I][C] lost connection to a server\n";
-		fMon.Remove(s);
-		fServerN--;
-	}
-	else {
-		ClientHandleInput(msg, s);
-	}
-	delete msg;
-}
-
-
-void TClientServer::CollectAll() {
+void TClientServer::Collect() {
+	fMon.ActivateAll();
 	TIter next(fMon.GetListOfActives()); //FIXME memleak: does TIter's destructor delete the list too?
 	TSocket *s;
 	while((s = (TSocket*)next()))
 		CollectOne(s);
+	fMon.DeActivateAll();
 }
 
 
@@ -190,6 +181,24 @@ void TClientServer::Send(const TMessage& msg, TSocket *s) const {
 }
 
 
+// this method assumes the socket is active
+void TClientServer::CollectOne(TSocket *s) {
+	if(!s)
+		s = fMon.Select();
+	TMessage *msg;
+	int nBytes = s->Recv(msg);
+	if(nBytes == 0 || !msg) {
+		std::cerr << "[I][C] lost connection to a server\n";
+		fMon.Remove(s);
+		fActiveServerN--;
+	}
+	else {
+		ClientHandleInput(msg, s);
+	}
+	delete msg;
+}
+
+
 void TClientServer::ClientHandleInput(TMessage *& msg, TSocket* s) {
 	if(msg->What() == kMESS_ANY) {
 		TNote *n = (TNote*)msg->ReadObjectAny(TNote::Class());
@@ -207,7 +216,7 @@ void TClientServer::ClientHandleInput(TMessage *& msg, TSocket* s) {
 		else if(n->code == 3) {
 			std::cerr << "[I][C] shutdown notice received\n";
 			fMon.Remove(s);
-			fServerN--;
+			fActiveServerN--;
 		}
 		else {
 			std::cerr << "[W][C] unknown type of message received. code=" << n->code << "\n";
@@ -220,7 +229,7 @@ void TClientServer::ClientHandleInput(TMessage *& msg, TSocket* s) {
 
 
 void TClientServer::ServerHandleInput(TMessage *& msg) {
-	TString head = "S"+std::to_string(fServerN)+": ";
+	TString head = "S"+std::to_string(fTotServerN)+": ";
 	if(msg->What() == kMESS_ANY) {
 		TNote *n = (TNote*)msg->ReadObjectAny(TNote::Class());
 		if(n->code == 0) {
@@ -237,7 +246,7 @@ void TClientServer::ServerHandleInput(TMessage *& msg) {
 				TObject *res = fJob->Process(); //FIXME memleak?
 				TNote *ans = new TNote;
 				ans->code = 2;
-				ans->str = "S"+std::to_string(fServerN);
+				ans->str = "S"+std::to_string(fTotServerN);
 				if(res)
 					ans->obj = res;
 				TMessage m; //TODO try with m(kMESS_OBJECT)
@@ -255,7 +264,7 @@ void TClientServer::ServerHandleInput(TMessage *& msg) {
 			TObject *o = (TObject*)gROOT->ProcessLine(n->str+"()");
 			TNote *ans = new TNote;
 			ans->code = 2;
-			ans->str = "S"+std::to_string(fServerN);
+			ans->str = "S"+std::to_string(fTotServerN);
 			if(o)
 				ans->obj = o;
 			TMessage m;
