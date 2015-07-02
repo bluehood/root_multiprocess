@@ -1,7 +1,7 @@
 C := g++ -std=c++11 -ggdb -Wall
 ROOT-LIBS := `root-config --libs`
 ROOT-CFLAGS := `root-config --cflags`
-TARGET := TClientServer.o myClientServer.o TJob.o myJob.o TNote.o
+TARGET := TClientServer.o TJob.o TNote.o
 
 all: $(TARGET)
 
