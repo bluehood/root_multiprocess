@@ -7,67 +7,33 @@
 #include <unistd.h> // close
 #include <iostream>
 
-//***** Code ******//
-std::string to_string(Code c) {
-	switch(c) {
-		case Code::message:
-			return "message";
-		case Code::error:
-			return "error";
-		case Code::execClass:
-			return "execClass";
-		case Code::execMacro:
-			return "execMacro";
-		case Code::shutdownOrder:
-			return "shutdownOrder";
-		case Code::classResult:
-			return "classResult";
-		case Code::macroResult:
-			return "macroResult";
-		case Code::shutdownNotice:
-			return "shutdownNotice";
-		default:
-			return "unkown code";
-	}
-}
 
-
-//***** TNote *****//
-TNote::TNote() {
-	code = Code::message;
-	str = "";
-	obj = nullptr;
-}
-
-
-//**** TClientSever ****//
 TClientServer::TClientServer() {
+	fResList = new TList;
 	fIsParent = true;
 	fPortN = 9090;
 	fActiveServerN = 0;
 	fTotServerN = 0;
 	fJob = nullptr;
 	fMacroPath = "";
-}
 
-
-TClientServer::TClientServer(TJob *j) : TClientServer() {
-	SetJob(j);
-}
-
-
-TClientServer::TClientServer(const TString& macroPath) : TClientServer() {
-	SetMacroPath(macroPath);
+	SysInfo_t si;
+	if(gSystem->GetSysInfo(&si) == 0)
+		fNWorkers = si.fCpus;
+	else
+		fNWorkers = 2;
 }
 
 
 TClientServer::~TClientServer() {
-	Broadcast(Code::shutdownOrder);
+	Broadcast(TNote::kShutdownOrder);
 	fMon.RemoveAll(); //FIXME memleak? this calls TList::Delete, and this only deletes objects if it has ownership
 }
 
 
 void TClientServer::Fork(unsigned n_forks) {
+	if(!n_forks)
+		n_forks = fNWorkers;
 	int pid;
 	for(unsigned i=0; i<n_forks; ++i) {
 		fActiveServerN++;
@@ -123,16 +89,8 @@ void TClientServer::Fork(unsigned n_forks) {
 }
 
 
-void TClientServer::Broadcast(Code code, TString str) {
+void TClientServer::Broadcast(TNote::ECode code, const TString& str) {
 	fMon.ActivateAll();
-	//set parameters for macro execution message
-	if(code == Code::execMacro) {
-		if(str != "")
-			std::cerr << "[W][C] code is \"execute macro\" but string is not empty. String will be ignored\n";
-		str = fMacroPath;
-		if(str.First('.') > 0)
-			str.Remove(str.First('.'));
-	}
 
 	//send message to all sockets
 	TIter next(fMon.GetListOfActives()); //FIXME memleak: does TIter's destructor delete the list too?
@@ -153,14 +111,6 @@ void TClientServer::Collect() {
 }
 
 
-void TClientServer::SetJob(TJob* j) {
-	if(j)
-		fJob = j;
-	else
-		std::cerr << "[E]C: could not set job. invalid address\n";
-}
-
-
 void TClientServer::SetMacroPath(const TString& path) {
 	gROOT->ProcessLine(".L "+path+"+");
 	//TODO what if I couldn't load it
@@ -178,14 +128,14 @@ void TClientServer::Run() { //FIXME interrupt events (ctrl-C) interrupt this too
 			delete msg;
 		}
 		else {
-			Send(3); //send shutdown notice (even if nobody is listening)
+			Send(TNote::kShutdownNotice); //send shutdown notice (even if nobody is listening)
 			gSystem->Exit(0);
 		}
 	}
 }
 
 
-void TClientServer::Send(Code code, const TString& str, TSocket *s) const {
+void TClientServer::Send(TNote::ECode code, const TString& str, TSocket *s) const {
 	if(!s)
 		s = (TSocket*)fMon.GetListOfActives()->First();
 	TNote *n = new TNote;
@@ -226,18 +176,18 @@ void TClientServer::CollectOne(TSocket *s) {
 void TClientServer::ClientHandleInput(TMessage *& msg, TSocket* s) {
 	if(msg->What() == kMESS_ANY) {
 		TNote *n = (TNote*)msg->ReadObjectAny(TNote::Class());
-		if(n->code == Code::message) {
+		if(n->code == TNote::kMessage) {
 			std::cerr << "[I][C] message received: '" << n->str << "\n";
 		}
-		else if(n->code == Code::error) {
+		else if(n->code == TNote::kError) {
 			std::cerr << "[E][C] error message received: '" << n->str << "\n";
 		}
-		else if(n->code == Code::classResult || n->code == Code::macroResult) {
+		else if(n->code == TNote::kClassResult || n->code == TNote::kMacroResult) {
 			std::cerr << "[I][C] job result received from " << n->str << "\n";
 			if(n->obj)
-				ResList.Add(n->obj);
+				fResList->Add(n->obj);
 		}
-		else if(n->code == Code::shutdownNotice) {
+		else if(n->code == TNote::kShutdownNotice) {
 			std::cerr << "[I][C] shutdown notice received\n";
 			fMon.Remove(s);
 			fActiveServerN--;
@@ -256,20 +206,20 @@ void TClientServer::ServerHandleInput(TMessage *& msg) {
 	TString head = "S"+std::to_string(fTotServerN)+": ";
 	if(msg->What() == kMESS_ANY) {
 		TNote *n = (TNote*)msg->ReadObjectAny(TNote::Class());
-		if(n->code == Code::message) {
+		if(n->code == TNote::kMessage) {
 		//general message
 			//ignore it
 		}
-		else if(n->code == Code::error) {
+		else if(n->code == TNote::kError) {
 		//general error
 			//ignore it
 		}
-		else if(n->code == Code::execClass) {
+		else if(n->code == TNote::kExecClass) {
 		//execute fJob->Process
 			if(fJob) {
 				TObject *res = fJob->Process(); //FIXME memleak?
 				TNote *ans = new TNote;
-				ans->code = Code::classResult;
+				ans->code = TNote::kClassResult;
 				ans->str = "S"+std::to_string(fTotServerN);
 				if(res)
 					ans->obj = res;
@@ -278,16 +228,18 @@ void TClientServer::ServerHandleInput(TMessage *& msg) {
 				Send(m);
 			}
 			else {
-				Send(Code::error,"could not execute job: job not set");
+				Send(TNote::kError,"could not execute job: job not set");
 				std::cerr << head << "could not execute job: job not set\n";
 			}
 		}
-		else if(n->code == Code::execMacro) {
+		else if(n->code == TNote::kExecMacro) {
 		//execute macro
-		//FIXME memleak: when shoud this stuff be deleted?
-			TObject *o = (TObject*)gROOT->ProcessLine(n->str+"()");
+			TString macro = fMacroPath;
+			macro.Remove(macro.First('.'));
+			//FIXME memleak: when should o and a be deleted?
+			TObject *o = (TObject*)gROOT->ProcessLine(macro+"()");
 			TNote *ans = new TNote;
-			ans->code = Code::macroResult;
+			ans->code = TNote::kMacroResult;
 			ans->str = "S"+std::to_string(fTotServerN);
 			if(o)
 				ans->obj = o;
@@ -295,17 +247,17 @@ void TClientServer::ServerHandleInput(TMessage *& msg) {
 			m.WriteObject(ans);
 			Send(m);
 		}
-		else if(n->code == Code::shutdownOrder) {
+		else if(n->code == TNote::kShutdownOrder) {
 		//shutdown order
-			Send(Code::shutdownNotice);
+			Send(TNote::kShutdownNotice);
 			gSystem->Exit(0);
 		}
 		else {
-			Send(Code::error,head+"unknown code received. code="+to_string(n->code));
+			Send(TNote::kError,head+"unknown code received. code="+to_string(n->code));
 		}
 	}
 	else {
-		Send(Code::error,head+"unexpected message received. type="+std::to_string(msg->What()));
+		Send(TNote::kError,head+"unexpected message received. type="+std::to_string(msg->What()));
 		std::cerr << head << "unexpected message received. msg type: " << msg->What() << std::endl;
 	}
 }

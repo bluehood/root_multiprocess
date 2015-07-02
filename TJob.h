@@ -8,7 +8,7 @@ class TJob {
 	ClassDef(TJob,1);
 	public:
 	virtual TObject* Process()=0;
-	//virtual TObject* Merge(const TList&)=0;
+	virtual TList* Merge(TList*);
 };
 
 #endif
