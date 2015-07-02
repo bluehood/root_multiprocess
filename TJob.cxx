@@ -7,27 +7,28 @@
 //otherwise put list of unmerged objects in output list
 //TODO support for list of lists
 /*TList* TJob::Merge(TList* l) {
-	TList* retl = new TList;
+   TList* retl = new TList;
 
-	TClass *c = l->First()->IsA();
-	if(c->GetMerge()) {
-		TObject *merged = (TObject*)c->New();
-		l->RemoveFirst();
-		merged->Merge(l);
-	}
-	else {
+   TClass *c = l->First()->IsA();
+   if(c->GetMerge()) {
+      TObject *merged = (TObject*)c->New();
+      l->RemoveFirst();
+      merged->Merge(l);
+   }
+   else {
 
-	}
+   }
 
-	return retl;
+   return retl;
 }
 */
 
-TList* TJob::Merge(TList* l) {
-	TList *retl = new TList;
-	TIter next(l);
-	while(TObject *o = next()) {
-		retl->Add(o);
-	}
-	return retl;
+TList *TJob::Merge(TList *l)
+{
+   TList *retl = new TList;
+   TIter next(l);
+   while (TObject *o = next()) {
+      retl->Add(o);
+   }
+   return retl;
 }

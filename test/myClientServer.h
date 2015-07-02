@@ -6,9 +6,9 @@
 #include "TString.h"
 
 class myClientServer : public TClientServer {
-	public:
-	void ProcessJob(TJob*);
-	void ProcessMacro(const TString& path);
+public:
+   void ProcessJob(TJob *);
+   void ProcessMacro(const TString &path);
 };
 
 #endif

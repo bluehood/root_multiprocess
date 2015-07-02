@@ -5,26 +5,26 @@
 #include "TObject.h"
 
 struct TNote : public TObject {
-	ClassDef(TNote, 1);
+   ClassDef(TNote, 1);
 
-	enum ECode : unsigned {
-		//general
-		kMessage,
-		kError,
-		//client codes
-		kExecClass,
-		kExecMacro,
-		kShutdownOrder,
-		//server codes
-		kClassResult,
-		kMacroResult,
-		kShutdownNotice
-	};
+   enum ECode : unsigned {
+      //general
+      kMessage,
+      kError,
+      //client codes
+      kExecClass,
+      kExecMacro,
+      kShutdownOrder,
+      //server codes
+      kClassResult,
+      kMacroResult,
+      kShutdownNotice
+   };
 
-	TNote();
-	ECode code;
-	TString str;
-	TObject *obj;
+   TNote();
+   ECode code;
+   TString str;
+   TObject *obj;
 };
 
 std::string to_string(TNote::ECode);

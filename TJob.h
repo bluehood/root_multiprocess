@@ -5,10 +5,10 @@
 #include "TList.h"
 
 class TJob {
-	ClassDef(TJob,1);
-	public:
-	virtual TObject* Process()=0;
-	virtual TList* Merge(TList*);
+   ClassDef(TJob, 1);
+public:
+   virtual TObject *Process() = 0;
+   virtual TList *Merge(TList *);
 };
 
 #endif
