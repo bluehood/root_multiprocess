@@ -4,7 +4,7 @@
 #include "TObject.h"
 #include "TList.h"
 
-class TJob {
+class TJob : public TObject {
    ClassDef(TJob, 1);
 public:
    virtual TObject *Process() = 0;
