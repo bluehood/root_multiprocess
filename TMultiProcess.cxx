@@ -75,8 +75,9 @@ void TMultiProcess::Fork(unsigned n_forks)
       close(0);
 
       //disable graphics
+      //these instructions were copied from TApplication::MakeBatch
       gROOT->SetBatch();
-      gXDisplay = 0;
+      gROOT->ProcessLine("if (gGuiFactory != gBatchGuiFactory) delete gGuiFactory; gGuiFactory = gBatchGuiFactory;\n#ifndef R__WIN32\nif (gVirtualX != gGXBatch) delete gVirtualX;\n#endif\ngVirtualX = gGXBatch;");
 
       //connect to parent
       unsigned n_fail = 0;
