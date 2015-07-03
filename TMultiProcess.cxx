@@ -73,6 +73,11 @@ void TMultiProcess::Fork(unsigned n_forks)
          }
       }
       close(0);
+
+      //disable graphics
+      gROOT->SetBatch();
+      gXDisplay = 0;
+
       //connect to parent
       unsigned n_fail = 0;
       TSocket *s;
