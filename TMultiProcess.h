@@ -4,8 +4,9 @@
 #include "TMessage.h"
 #include "TString.h"
 #include "TMonitor.h"
-#include "TJob.h"
 #include "TNote.h"
+#include <vector>
+#include <unistd.h> //pid_t
 
 class TMultiProcess {
    ClassDef(TMultiProcess, 1);
@@ -20,15 +21,14 @@ public:
    void CollectOne(TSocket * = nullptr);
    inline void SetResList(TList *l) { delete fResList; fResList = l; }
    inline TList* GetResList() const { return fResList; }
+   void ReapServers();
 
 private:
-   void HandleInput(TMessage *&msg, TSocket *sender);
+   virtual void HandleInput(TMessage *&msg, TSocket *sender);
 
    bool fIsParent;
    unsigned fPortN;
-   unsigned fActiveServerN;
-   unsigned fTotServerN;
-   unsigned fNWorkers;
+   std::vector<pid_t> fServerPids;
    TMonitor fMon;
    TList *fResList;
 };

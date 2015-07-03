@@ -5,9 +5,9 @@
 #include "TROOT.h"
 #include <iostream>
 
-TServer::TServer(TSocket *s, unsigned serverN) {
+TServer::TServer(TSocket *s) {
    fMon.Add(s);
-   fServerN = serverN;
+   fPid = getpid();
 }
 
 
@@ -20,7 +20,7 @@ void TServer::Run() {
          HandleInput(msg);
          delete msg;
       } else {
-         std::cerr << "S" << fServerN << ": bad message received. shutting down\n";
+         std::cerr << "S" << fPid << ": bad message received. shutting down\n";
          Send(TNote::kShutdownNotice); //send shutdown notice (even if nobody is listening)
          gSystem->Exit(0);
       }
@@ -30,7 +30,7 @@ void TServer::Run() {
 
 void TServer::HandleInput(TMessage  *&msg)
 {
-   TString head = "S" + std::to_string(fServerN) + ": ";
+   TString myId = "S" + std::to_string(fPid);
    if (msg->What() == kMESS_ANY) {
       TNote *n = (TNote *)msg->ReadObjectAny(TNote::Class());
       if (n->code == TNote::kMessage) {
@@ -46,32 +46,30 @@ void TServer::HandleInput(TMessage  *&msg)
          if(n->obj->InheritsFrom(TJob::Class())) {
             TJob* j = (TJob*) n->obj;
             TObject *res = j->Process();
-            Send(TNote::kClassResult,"",res);
+            Send(TNote::kClassResult,myId,res);
          } else {
             Send(TNote::kError, "could not execute job. no job received");
-            std::cerr << head << "could not execute job. no job received\n";
+            std::cerr << myId << ": could not execute job. no job received\n";
          }
+         gSystem->Exit(0);
       } else if (n->code == TNote::kExecMacro) {
-      /*
          //execute macro
          TString macro = n->str;
-         macro.Remove(0,a.Last('/')+1);
-         macro.Remove(macro.First('.'));
          //FIXME memleak: when should o and a be deleted?
          //FIXME how do I check for errors in macro execution?
-         TObject *o = (TObject *)gROOT->ProcessLine(macro + "()");
-      */
-         Send(TNote::kError,"not implemented");
+         TObject *res = (TObject *)gROOT->ProcessLine(macro + "()");
+         Send(TNote::kMacroResult,myId,res);
+         gSystem->Exit(0);
       } else if (n->code == TNote::kShutdownOrder) {
          //shutdown order
          Send(TNote::kShutdownNotice);
          gSystem->Exit(0);
       } else {
-         Send(TNote::kError, head + "unknown code received. code=" + to_string(n->code));
+         Send(TNote::kError, myId + ": unknown code received. code=" + to_string(n->code));
       }
    } else {
-      Send(TNote::kError, head + "unexpected message received. type=" + std::to_string(msg->What()));
-      std::cerr << head << "unexpected message received. msg type: " << msg->What() << std::endl;
+      Send(TNote::kError, myId + ": unexpected message received. type=" + std::to_string(msg->What()));
+      std::cerr << myId << ": unexpected message received. msg type: " << msg->What() << std::endl;
    }
 }
 

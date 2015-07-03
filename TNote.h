@@ -11,6 +11,7 @@ struct TNote : public TObject {
       //general
       kMessage,
       kError,
+      kFatalError,
       //client codes
       kExecClass,
       kExecMacro,

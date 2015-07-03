@@ -7,6 +7,8 @@ std::string to_string(TNote::ECode c)
          return "message";
       case TNote::kError:
          return "error";
+      case TNote::kFatalError:
+         return "fatal error";
       case TNote::kExecClass:
          return "execClass";
       case TNote::kExecMacro:

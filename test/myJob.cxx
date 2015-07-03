@@ -7,9 +7,3 @@ TObject *myJob::Process()
    h->FillRandom("gaus", 10000);
    return h;
 }
-
-/*
-TObject* myJob::Merge(const TList&) {
-   TObject* o = nullptr;
-   return o;
-}*/

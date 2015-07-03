@@ -5,7 +5,8 @@
 #include "TSocket.h"
 #include "TServer.h"
 #include "TCollection.h" //TIter
-#include <unistd.h> // close
+#include <unistd.h> // close, fork
+#include <sys/wait.h> // waitpid
 #include <iostream>
 
 
@@ -14,21 +15,14 @@ TMultiProcess::TMultiProcess()
    fResList = nullptr;
    fIsParent = true;
    fPortN = 9090;
-   fActiveServerN = 0;
-   fTotServerN = 0;
 
-   SysInfo_t si;
-   if (gSystem->GetSysInfo(&si) == 0)
-      fNWorkers = si.fCpus;
-   else
-      fNWorkers = 2;
 }
 
 
 TMultiProcess::~TMultiProcess()
 {
    Broadcast(TNote::kShutdownOrder);
-   fMon.RemoveAll(); //FIXME memleak? this calls TList::Delete, and this only deletes objects if it has ownership
+   fMon.RemoveAll(); //FIXME memleak? this calls TList::Delete, and this only deletes objects if it has ownership (I can safely give fMon ownership I think)
    fResList->Clear();
    delete fResList;
 }
@@ -36,31 +30,38 @@ TMultiProcess::~TMultiProcess()
 
 void TMultiProcess::Fork(unsigned n_forks)
 {
-   if (!n_forks)
-      n_forks = fNWorkers;
-   int pid;
+   if (!n_forks) {
+	   SysInfo_t si;
+	   if (gSystem->GetSysInfo(&si) == 0)
+	      n_forks = si.fCpus;
+	   else
+	      n_forks = 2;
+   }
+
+   //fork as many times as needed and save pids
+   pid_t pid;
    for (unsigned i = 0; i < n_forks; ++i) {
-      fActiveServerN++;
-      fTotServerN++;
       pid = fork();
+      fServerPids.push_back(pid);
       if (!pid)
          break;
    }
 
+   //establish connections, start servers
    if (pid) {
       //PARENT/CLIENT
+      //wait for children to connect
       TServerSocket ss(fPortN, kTRUE);
-      //wait for child to connect
       for (unsigned i = 0; i < n_forks; ++i) {
          TSocket *s = ss.Accept();
          fMon.Add(s);
          fMon.DeActivate(s);
       }
+      //create ResList. Done here so that only the client has it
       if(!fResList)
          fResList = new TList;
    } else {
       //CHILD/SERVER
-      gSystem->Sleep(100); //FIXME there must be a better way to synchronize connections
       fIsParent = false;
 
       //remove stdin from eventloop and close it
@@ -83,17 +84,17 @@ void TMultiProcess::Fork(unsigned n_forks)
       unsigned n_fail = 0;
       TSocket *s;
       do {
-         gSystem->Sleep(10);
+         gSystem->Sleep(50);
          s = new TSocket("localhost", fPortN);
          if (!s)
             ++n_fail;
       } while (!s && n_fail < 3);
       if (!s) {
-         std::cerr << "[E] S" << fTotServerN << ": could not connect to parent, giving up\n";
+         std::cerr << "[E] S" << getpid() << ": could not connect to parent, giving up\n";
          gSystem->Exit(1);
       }
       //instatiate server and enter loop
-      TServer serv(s, fTotServerN);
+      TServer serv(s);
       serv.Run();
       //we should never reach this point: TServer is in charge of closing the session
    }
@@ -149,11 +150,17 @@ void TMultiProcess::CollectOne(TSocket *s)
    if (nBytes == 0 || !msg) {
       std::cerr << "[I][C] lost connection to a server\n";
       fMon.Remove(s);
-      fActiveServerN--;
    } else {
       HandleInput(msg, s);
    }
    delete msg;
+}
+
+
+void TMultiProcess::ReapServers() {
+   for(auto& pid : fServerPids) {
+      waitpid(pid,nullptr,0);
+   }
 }
 
 
@@ -169,11 +176,10 @@ void TMultiProcess::HandleInput(TMessage  *&msg, TSocket *s)
          std::cerr << "[I][C] job result received from " << n->str << "\n";
          if (n->obj)
             fResList->Add(n->obj);
-      } else if (n->code == TNote::kShutdownNotice) {
-         std::cerr << "[I][C] shutdown notice received\n";
+         fMon.DeActivate(s);
+      } else if (n->code == TNote::kShutdownNotice || n->code == TNote::kFatalError) {
+         std::cerr << "[I][C] " << to_string(n->code) << " received\n";
          fMon.Remove(s);
-         fActiveServerN--;
-         //TODO wait for child process to return? I don't have the pid though
       } else {
          std::cerr << "[W][C] unknown type of message received. code=" << to_string(n->code) << "\n";
       }
