@@ -132,11 +132,10 @@ void TMultiProcess::Send(TNote::ECode code, const TString &str, TObject* o, TSoc
 void TMultiProcess::Collect()
 {
    fMon.ActivateAll();
-   TIter next(fMon.GetListOfActives()); //FIXME memleak: does TIter's destructor delete the list too?
-   TSocket *s;
-   while ((s = (TSocket *)next()))
-      CollectOne(s);
-   fMon.DeActivateAll();
+   while(fMon.GetActive() > 0) {
+	   TSocket *s = fMon.Select();
+	   CollectOne(s);
+   }
 }
 
 
