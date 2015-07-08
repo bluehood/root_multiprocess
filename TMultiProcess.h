@@ -19,7 +19,7 @@ public:
    void Send(TNote::ECode code, const TString &str = "", TObject* o = nullptr, TSocket * = nullptr) const;
    void Collect();
    void CollectOne(TSocket * = nullptr);
-   inline void SetResList(TList *l) { delete fResList; fResList = l; }
+   inline void SetResList(TList *l) { fResList = l; }
    inline TList* GetResList() const { return fResList; }
    void ReapServers();
 

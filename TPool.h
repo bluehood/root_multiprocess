@@ -11,7 +11,7 @@ class TPool : private TMultiProcess {
 
    private:
    void HandleInput(TMessage *&msg, TSocket *sender);
-   TList* Merge();
+   void Merge();
 };
 
 #endif
