@@ -23,9 +23,10 @@ public:
    inline TList* GetResList() const { return fResList; }
    void ReapServers();
 
-private:
+protected:
    virtual void HandleInput(TMessage *&msg, TSocket *sender);
 
+private:
    bool fIsParent;
    unsigned fPortN;
    std::vector<pid_t> fServerPids;
