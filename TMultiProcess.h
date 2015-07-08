@@ -9,7 +9,7 @@
 #include <unistd.h> //pid_t
 
 class TMultiProcess {
-   ClassDef(TMultiProcess, 1);
+   ClassDef(TMultiProcess, 0);
 public:
    TMultiProcess();
    ~TMultiProcess();

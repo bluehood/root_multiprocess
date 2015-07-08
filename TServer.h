@@ -8,7 +8,7 @@
 #include <unistd.h> //pid_t
 
 class TServer {
-   ClassDef(TServer,1);
+   ClassDef(TServer,0);
    public:
    TServer(TSocket *s);
    void Run();
