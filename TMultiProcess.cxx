@@ -1,4 +1,6 @@
 #include "TMultiProcess.h"
+#include "TGuiFactory.h"
+#include "TVirtualX.h"
 #include "TSystem.h" //gSystem
 #include "TROOT.h" //gROOT
 #include "TServerSocket.h"
@@ -80,7 +82,14 @@ void TMultiProcess::Fork(unsigned n_forks)
       //disable graphics
       //these instructions were copied from TApplication::MakeBatch
       gROOT->SetBatch();
-      gROOT->ProcessLine("if (gGuiFactory != gBatchGuiFactory) delete gGuiFactory; gGuiFactory = gBatchGuiFactory;\n#ifndef R__WIN32\nif (gVirtualX != gGXBatch) delete gVirtualX;\n#endif\ngVirtualX = gGXBatch;");
+      if(gGuiFactory != gBatchGuiFactory)
+         delete gGuiFactory;
+      gGuiFactory = gBatchGuiFactory;
+      #ifndef R__WIN32
+         if (gVirtualX != gGXBatch)
+            delete gVirtualX;
+      #endif
+      gVirtualX = gGXBatch;
 
       //connect to parent
       unsigned n_fail = 0;
