@@ -24,6 +24,9 @@ void TPool::HandleInput(TMessage *&msg, TSocket *sender) {
 //TODO handle the case of ResList as list of lists
 void TPool::Merge() {
    TList* l = GetResList();
+   if(l->GetSize() == 0)
+      return;
+
    TList* retl = new TList;
 
    TClass *c = l->First()->IsA();
