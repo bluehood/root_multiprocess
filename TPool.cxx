@@ -4,11 +4,12 @@
 #include "TMethodCall.h"
 #include <iostream>
 
-TList* TPool::Map(TString macro) {
+TList *TPool::Map(TString macro)
+{
    Fork();
-   if(!GetIsParent())
+   if (!GetIsParent())
       return nullptr;
-   Broadcast(TNote::kExecMacro,macro);
+   Broadcast(TNote::kExecMacro, macro);
    Collect();
    Merge();
    ReapServers();
@@ -16,21 +17,23 @@ TList* TPool::Map(TString macro) {
 }
 
 
-void TPool::HandleInput(TMessage *&msg, TSocket *sender) {
-   TMultiProcess::HandleInput(msg,sender);
+void TPool::HandleInput(TMessage *&msg, TSocket *sender)
+{
+   TMultiProcess::HandleInput(msg, sender);
 }
 
 
 //TODO handle the case of ResList as list of lists
-void TPool::Merge() {
-   TList* l = GetResList();
-   if(l->GetSize() == 0)
+void TPool::Merge()
+{
+   TList *l = GetResList();
+   if (l->GetSize() == 0)
       return;
 
-   TList* retl = new TList;
+   TList *retl = new TList;
 
    TClass *c = l->First()->IsA();
-   if(c->GetMerge()) {
+   if (c->GetMerge()) {
       TObject *merged = l->First();
       l->RemoveFirst();
       TMethodCall callEnv;

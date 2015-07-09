@@ -33,11 +33,11 @@ TMultiProcess::~TMultiProcess()
 void TMultiProcess::Fork(unsigned n_forks)
 {
    if (!n_forks) {
-	   SysInfo_t si;
-	   if (gSystem->GetSysInfo(&si) == 0)
-	      n_forks = si.fCpus;
-	   else
-	      n_forks = 2;
+      SysInfo_t si;
+      if (gSystem->GetSysInfo(&si) == 0)
+         n_forks = si.fCpus;
+      else
+         n_forks = 2;
    }
 
    //fork as many times as needed and save pids
@@ -60,7 +60,7 @@ void TMultiProcess::Fork(unsigned n_forks)
          fMon.DeActivate(s);
       }
       //create ResList. Done here so that only the client has it
-      if(!fResList)
+      if (!fResList)
          fResList = new TList;
    } else {
       //CHILD/SERVER
@@ -102,7 +102,7 @@ void TMultiProcess::Fork(unsigned n_forks)
 }
 
 
-void TMultiProcess::Broadcast(TNote::ECode code, const TString &str, TObject* o)
+void TMultiProcess::Broadcast(TNote::ECode code, const TString &str, TObject *o)
 {
    fMon.ActivateAll();
 
@@ -117,7 +117,7 @@ void TMultiProcess::Broadcast(TNote::ECode code, const TString &str, TObject* o)
 }
 
 
-void TMultiProcess::Send(TNote::ECode code, const TString &str, TObject* o, TSocket *s) const
+void TMultiProcess::Send(TNote::ECode code, const TString &str, TObject *o, TSocket *s) const
 {
    if (!s)
       s = (TSocket *)fMon.GetListOfActives()->First();
@@ -135,9 +135,9 @@ void TMultiProcess::Send(TNote::ECode code, const TString &str, TObject* o, TSoc
 void TMultiProcess::Collect()
 {
    fMon.ActivateAll();
-   while(fMon.GetActive() > 0) {
-	   TSocket *s = fMon.Select();
-	   CollectOne(s);
+   while (fMon.GetActive() > 0) {
+      TSocket *s = fMon.Select();
+      CollectOne(s);
    }
 }
 
@@ -160,9 +160,10 @@ void TMultiProcess::CollectOne(TSocket *s)
 }
 
 
-void TMultiProcess::ReapServers() {
-   for(auto& pid : fServerPids) {
-      waitpid(pid,nullptr,0);
+void TMultiProcess::ReapServers()
+{
+   for (auto &pid : fServerPids) {
+      waitpid(pid, nullptr, 0);
    }
 }
 

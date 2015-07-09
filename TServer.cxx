@@ -6,7 +6,8 @@
 #include <iostream>
 
 
-TServer::TServer(TSocket *s) : TFileHandler(s->GetDescriptor(), kRead) {
+TServer::TServer(TSocket *s) : TFileHandler(s->GetDescriptor(), kRead)
+{
    fS = s;
    fPid = getpid();
 }
@@ -19,18 +20,18 @@ void TServer::HandleInput(TMessage  *&msg)
       TNote *n = (TNote *)msg->ReadObjectAny(TNote::Class());
       if (n->code == TNote::kMessage) {
          //general message
-         Send(TNote::kMessage,"ok");
+         Send(TNote::kMessage, "ok");
          //ignore it
       } else if (n->code == TNote::kError) {
          //general error
-         Send(TNote::kMessage,"ko");
+         Send(TNote::kMessage, "ko");
          //ignore it
       } else if (n->code == TNote::kExecClass) {
          //execute TJob::Process
-         if(n->obj->InheritsFrom(TJob::Class())) {
-            TJob* j = (TJob*) n->obj;
+         if (n->obj->InheritsFrom(TJob::Class())) {
+            TJob *j = (TJob *) n->obj;
             TObject *res = j->Process();
-            Send(TNote::kClassResult,myId,res);
+            Send(TNote::kClassResult, myId, res);
          } else {
             Send(TNote::kError, "could not execute job. no job received");
             std::cerr << myId << ": could not execute job. no job received\n";
@@ -41,7 +42,7 @@ void TServer::HandleInput(TMessage  *&msg)
          TString macro = n->str;
          //FIXME how do I check for errors in macro execution?
          TObject *res = (TObject *)gROOT->ProcessLine(macro + "()");
-         Send(TNote::kMacroResult,myId,res);
+         Send(TNote::kMacroResult, myId, res);
          gSystem->Exit(0);
       } else if (n->code == TNote::kShutdownOrder) {
          //shutdown order
@@ -58,7 +59,7 @@ void TServer::HandleInput(TMessage  *&msg)
 }
 
 
-void TServer::Send(TNote::ECode code, const TString &str, TObject* o) const
+void TServer::Send(TNote::ECode code, const TString &str, TObject *o) const
 {
    TNote *n = new TNote;
    n->code = code;
