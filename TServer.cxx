@@ -55,7 +55,6 @@ void TServer::HandleInput(TMessage  *&msg)
       } else if (n->code == TNote::kExecMacro) {
          //execute macro
          TString macro = n->str;
-         //FIXME memleak: when should o and a be deleted?
          //FIXME how do I check for errors in macro execution?
          TObject *res = (TObject *)gROOT->ProcessLine(macro + "()");
          Send(TNote::kMacroResult,myId,res);
@@ -67,6 +66,7 @@ void TServer::HandleInput(TMessage  *&msg)
       } else {
          Send(TNote::kError, myId + ": unknown code received. code=" + to_string(n->code));
       }
+      delete n;
    } else {
       Send(TNote::kError, myId + ": unexpected message received. type=" + std::to_string(msg->What()));
       std::cerr << myId << ": unexpected message received. msg type: " << msg->What() << std::endl;

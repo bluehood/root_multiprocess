@@ -15,16 +15,18 @@ TMultiProcess::TMultiProcess()
    fResList = nullptr;
    fIsParent = true;
    fPortN = 9090;
-
 }
 
 
 TMultiProcess::~TMultiProcess()
 {
    Broadcast(TNote::kShutdownOrder);
-   fMon.RemoveAll(); //FIXME memleak? this calls TList::Delete, and this only deletes objects if it has ownership (I can safely give fMon ownership I think)
+   fMon.GetListOfActives()->Delete();
+   fMon.GetListOfDeActives()->Delete();
+   fMon.RemoveAll();
    fResList->Clear();
    delete fResList;
+   ReapServers();
 }
 
 
@@ -106,11 +108,13 @@ void TMultiProcess::Broadcast(TNote::ECode code, const TString &str, TObject* o)
    fMon.ActivateAll();
 
    //send message to all sockets
-   TIter next(fMon.GetListOfActives()); //FIXME memleak: does TIter's destructor delete the list too?
+   TList *l = fMon.GetListOfActives();
+   TIter next(l);
    TSocket *s;
    while ((s = (TSocket *)next()))
       Send(code, str, o, s);
    fMon.DeActivateAll();
+   delete l;
 }
 
 
@@ -149,6 +153,7 @@ void TMultiProcess::CollectOne(TSocket *s)
    if (nBytes == 0 || !msg) {
       std::cerr << "[I][C] lost connection to a server\n";
       fMon.Remove(s);
+      delete s;
    } else {
       HandleInput(msg, s);
    }
@@ -175,10 +180,12 @@ void TMultiProcess::HandleInput(TMessage  *&msg, TSocket *s)
          std::cerr << "[I][C] job result received from " << n->str << "\n";
          if (n->obj)
             fResList->Add(n->obj);
-         fMon.DeActivate(s);
+         fMon.Remove(s);
+         delete s;
       } else if (n->code == TNote::kShutdownNotice || n->code == TNote::kFatalError) {
          std::cerr << "[I][C] " << to_string(n->code) << " received\n";
          fMon.Remove(s);
+         delete s;
       } else {
          std::cerr << "[W][C] unknown type of message received. code=" << to_string(n->code) << "\n";
       }
