@@ -68,7 +68,7 @@ void TServer::Send(TNote::ECode code, const TString &str, TObject *o) const
    TMessage msg; //TODO try with msg(kMESS_OBJECT) just to see what happens
    msg.WriteObject(n);
    fS->Send(msg);
-   //TODO try a `delete n` here
+   delete n;
 }
 
 
