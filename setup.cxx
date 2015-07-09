@@ -1,8 +1,8 @@
 void setup()
 {
-   gROOT->ProcessLine(".L TJob.cxx+");
-   gROOT->ProcessLine(".L TNote.cxx+");
-   gROOT->ProcessLine(".L TServer.cxx+");
-   gROOT->ProcessLine(".L TMultiProcess.cxx+");
-   gROOT->ProcessLine(".L TPool.cxx+");
+   gSystem->CompileMacro("TJob.cxx");
+   gSystem->CompileMacro("TNote.cxx");
+   gSystem->CompileMacro("TServer.cxx");
+   gSystem->CompileMacro("TMultiProcess.cxx");
+   gSystem->CompileMacro("TPool.cxx");
 }
