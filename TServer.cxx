@@ -5,26 +5,10 @@
 #include "TROOT.h"
 #include <iostream>
 
-TServer::TServer(TSocket *s) {
-   fMon.Add(s);
+
+TServer::TServer(TSocket *s) : TFileHandler(s->GetDescriptor(), kRead) {
+   fS = s;
    fPid = getpid();
-}
-
-
-void TServer::Run() {
-   while (true) {
-      TSocket *s = fMon.Select();
-      TMessage *msg;
-      int nBytes = s->Recv(msg);
-      if (nBytes && msg) {
-         HandleInput(msg);
-         delete msg;
-      } else {
-         std::cerr << "S" << fPid << ": bad message received. shutting down\n";
-         Send(TNote::kShutdownNotice); //send shutdown notice (even if nobody is listening)
-         gSystem->Exit(0);
-      }
-   }
 }
 
 
@@ -76,13 +60,29 @@ void TServer::HandleInput(TMessage  *&msg)
 
 void TServer::Send(TNote::ECode code, const TString &str, TObject* o) const
 {
-   TSocket *s = (TSocket *)fMon.GetListOfActives()->First();
    TNote *n = new TNote;
    n->code = code;
    n->str = str;
    n->obj = o;
    TMessage msg; //TODO try with msg(kMESS_OBJECT) just to see what happens
    msg.WriteObject(n);
-   s->Send(msg);
+   fS->Send(msg);
    //TODO try a `delete n` here
+}
+
+
+Bool_t TServer::Notify()
+{
+   TMessage *msg;
+   int nBytes = fS->Recv(msg);
+   if (nBytes && msg) {
+      HandleInput(msg);
+      delete msg;
+   } else {
+      std::cerr << "S" << fPid << ": bad message received. shutting down\n";
+      Send(TNote::kShutdownNotice); //send shutdown notice (even if nobody is listening)
+      gSystem->Exit(0);
+   }
+
+   return kTRUE;
 }

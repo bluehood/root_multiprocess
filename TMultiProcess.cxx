@@ -95,10 +95,14 @@ void TMultiProcess::Fork(unsigned n_forks)
          std::cerr << "[E] S" << getpid() << ": could not connect to parent, giving up\n";
          gSystem->Exit(1);
       }
-      //instatiate server and enter loop
-      TServer serv(s);
-      serv.Run();
-      //we should never reach this point: TServer is in charge of closing the session
+      //instatiate server and add it to eventloop
+      TServer *server = new TServer(s);
+      server->Add();
+      //enter eventloop
+      while(true) {
+         gSystem->ProcessEvents();
+      }
+      //we should never reach this point
    }
 }
 
