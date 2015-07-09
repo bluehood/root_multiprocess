@@ -21,6 +21,7 @@ public:
    void CollectOne(TSocket * = nullptr);
    inline void SetResList(TList *l) { fResList = l; }
    inline TList* GetResList() const { return fResList; }
+   inline bool GetIsParent() const { return fIsParent; }
    void ReapServers();
 
 protected:

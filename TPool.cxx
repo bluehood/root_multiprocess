@@ -6,6 +6,8 @@
 
 TList* TPool::Map(TString macro) {
    Fork();
+   if(!GetIsParent())
+      return nullptr;
    Broadcast(TNote::kExecMacro,macro);
    Collect();
    Merge();

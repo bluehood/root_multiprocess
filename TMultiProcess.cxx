@@ -98,11 +98,6 @@ void TMultiProcess::Fork(unsigned n_forks)
       //instatiate server and add it to eventloop
       TServer *server = new TServer(s);
       server->Add();
-      //enter eventloop
-      while(true) {
-         gSystem->ProcessEvents();
-      }
-      //we should never reach this point
    }
 }
 
