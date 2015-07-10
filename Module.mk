@@ -1,4 +1,4 @@
-# Module.mk for thread module
+# Module.mk for multiproc module
 # Copyright (c) 2000 Rene Brun and Fons Rademakers
 #
 # Author: Fons Rademakers, 29/2/2000
@@ -12,7 +12,7 @@ MULTIPROCDIR    := $(MODDIR)
 MULTIPROCDIRS   := $(MULTIPROCDIR)/src
 MULTIPROCDIRI   := $(MULTIPROCDIR)/inc
 
-##### libThread #####
+##### libMultiProc #####
 MULTIPROCL      := $(MODDIRI)/LinkDef.h
 MULTIPROCDS     := $(call stripsrc,$(MODDIRS)/G__MultiProc.cxx)
 MULTIPROCDO     := $(MULTIPROCDS:.cxx=.o)
@@ -63,7 +63,7 @@ $(call pcmrule,MULTIPROC)
 $(MULTIPROCDS):    $(MULTIPROCH) $(MULTIPROCL) $(ROOTCLINGSTAGE1DEP) $(call pcmdep,MULTIPROC)
 		$(MAKEDIR)
 		@echo "Generating dictionary $@..."
-		$(ROOTCLINGSTAGE1) -f $@ $(call dictModule,MULTIPROC) -c $(MULTIPROCH) $(MULTIPROCL) && touch lib/libMultiProc_rdict.pcm
+		$(ROOTCLINGSTAGE2) -f $@ $(call dictModule,MULTIPROC) -c $(MULTIPROCH) $(MULTIPROCL)
 
 $(MULTIPROCMAP):   $(MULTIPROCH) $(MULTIPROCL) $(ROOTCLINGSTAGE1DEP) $(call pcmdep,MULTIPROC)
 		$(MAKEDIR)
