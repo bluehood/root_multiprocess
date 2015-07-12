@@ -4,12 +4,12 @@
 #include "TMethodCall.h"
 #include <iostream>
 
-TList *TPool::Map(TString macro)
+TList *TPool::Map(TString funcName)
 {
    Fork();
    if (!GetIsParent())
       return nullptr;
-   Broadcast(TNote::kExecMacro, macro);
+   Broadcast(TNote::kExecMacro, funcName);
    Collect();
    Merge();
    ReapServers();

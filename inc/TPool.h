@@ -7,7 +7,7 @@
 class TPool : private TMultiProcess {
    ClassDef(TPool, 0);
 public:
-   TList *Map(TString macro);
+   TList *Map(TString funcName);
 
 private:
    void HandleInput(TMessage *&msg, TSocket *sender);
