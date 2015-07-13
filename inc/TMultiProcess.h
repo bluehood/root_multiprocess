@@ -4,6 +4,7 @@
 #include "TMessage.h"
 #include "TString.h"
 #include "TMonitor.h"
+#include "TPluginManager.h"
 #include "TNote.h"
 #include <vector>
 #include <unistd.h> //pid_t
@@ -11,7 +12,7 @@
 class TMultiProcess {
    ClassDef(TMultiProcess, 0);
 public:
-   TMultiProcess();
+   TMultiProcess(TString servType = "local");
    ~TMultiProcess();
 
    void Fork(unsigned n_forks = 0);
@@ -33,6 +34,8 @@ private:
    std::vector<pid_t> fServerPids;
    TMonitor fMon;
    TList *fResList;
+   TString fServType;
+   TPluginHandler* fPlugin;
 };
 
 #endif

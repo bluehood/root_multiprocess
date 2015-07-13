@@ -20,11 +20,11 @@ MULTIPROCDH     := $(MULTIPROCDS:.cxx=.h)
 
 MULTIPROCH      := $(MODDIRI)/TMultiProcess.h $(MODDIRI)/TPool.h \
                 $(MODDIRI)/TServer.h $(MODDIRI)/TJob.h \
-                $(MODDIRI)/TNote.h
+                $(MODDIRI)/TNote.h $(MODDIRI)/TLocalServer.h
 
 MULTIPROCS      := $(MODDIRS)/TMultiProcess.cxx $(MODDIRS)/TPool.cxx \
                 $(MODDIRS)/TServer.cxx $(MODDIRS)/TJob.cxx \
-                $(MODDIRS)/TNote.cxx 
+                $(MODDIRS)/TNote.cxx $(MODDIRS)/TLocalServer.cxx
 
 MULTIPROCO      := $(call stripsrc,$(MULTIPROCS:.cxx=.o))
 

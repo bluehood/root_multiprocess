@@ -12,11 +12,19 @@
 #include <iostream>
 
 
-TMultiProcess::TMultiProcess()
+TMultiProcess::TMultiProcess(TString servType)
 {
    fResList = nullptr;
    fIsParent = true;
    fPortN = 9090;
+   fServType = servType;
+   fPlugin = gROOT->GetPluginManager()->FindHandler("TMultiProcess");
+   if(!fPlugin) {
+      std::cerr << "[E][C] no plugin found\n";
+   } else {
+      if(fPlugin->LoadPlugin() == -1)
+         std::cerr << "[E][C] no plugin found\n";
+   }
 }
 
 
@@ -105,6 +113,8 @@ void TMultiProcess::Fork(unsigned n_forks)
          gSystem->Exit(1);
       }
       //instatiate server and add it to eventloop
+   //   const char* opt = "s";
+ //     TServer *server = (TServer*)fPlugin->ExecPlugin(2,fServType, opt);
       TServer *server = new TServer(s);
       server->Add();
    }

@@ -12,8 +12,10 @@ class TServer : public TFileHandler {
    ClassDef(TServer, 0);
 public:
    TServer(TSocket *s);
-   void HandleInput(TMessage *&);
+   virtual void HandleInput(TMessage *&);
    void Send(TNote::ECode code, const TString &str = "", TObject *o = nullptr) const;
+   inline TSocket* GetSocket() { return fS; }
+   inline pid_t GetPid() { return fPid; }
 
    Bool_t   Notify();
    Bool_t   ReadNotify() { return Notify(); }
